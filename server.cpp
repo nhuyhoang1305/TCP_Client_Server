@@ -9,6 +9,8 @@
 #define SERVER_PORT 9000
 #define BUFFER_SIZE 1024    
 
+const char *verifyLogin(char *data);
+
 int main(int argc, char **argv)
 {
     int     listenPort = SERVER_PORT;
@@ -48,27 +50,68 @@ int main(int argc, char **argv)
         printf("Waiting for a client....\n");
         cliSock = accept(servSock, (struct sockaddr *) &cliAddr, (socklen_t *)&cliAddrLen);
         printf("Received a connection from a client %s\n", inet_ntoa(cliAddr.sin_addr));
-        while (true)
+
+        // login
+        n = read(cliSock, recvBuf, sizeof(recvBuf));
+        recvBuf[n] = '\0';
+        const char *sentBuf = verifyLogin(recvBuf);
+        printf("%s\n", sentBuf);
+        if (strcmp(sentBuf, "Login sucess!") == 0)
         {
-            n = read(cliSock, recvBuf, BUFFER_SIZE-1);
-            recvBuf[n] = '\0';
-            if (n == 0 || strcmp(recvBuf, "@close") == 0)
+            write(cliSock, sentBuf, strlen(sentBuf));
+            while (true)
             {
-                close(cliSock);
-                printf("Close the connection\n");
-                break;
-            }
-            printf("Received a message from the client: %s\n", recvBuf);
-            for (int i = 0; i < n; ++i)
-            {
-                if (recvBuf[i] >= 'a' && recvBuf[i] <= 'z')
+                n = read(cliSock, recvBuf, BUFFER_SIZE-1);
+                recvBuf[n] = '\0';
+                if (n == 0 || strcmp(recvBuf, "@close") == 0)
                 {
-                    recvBuf[i] -= 32;
+                    close(cliSock);
+                    printf("Close the connection\n");
+                    break;
                 }
+                printf("Received a message from the client: %s\n", recvBuf);
+                for (int i = 0; i < n; ++i)
+                {
+                    if (recvBuf[i] >= 'a' && recvBuf[i] <= 'z')
+                    {
+                        recvBuf[i] -= 32;
+                    }
+                }
+                write(cliSock, recvBuf, n);
+                printf("Sent a message to the client: %s\n", recvBuf);
             }
-            write(cliSock, recvBuf, n);
-            printf("Sent a message to the client: %s\n", recvBuf);
         }
     }
+
+}
+
+const char* verifyLogin(char *data)
+{
+    const int   LENGTH = 256;
+    char        userId[LENGTH];
+    char        password[LENGTH];
+
+    int i = 0, offset;
+    while (data[i] != ',')
+    {
+        userId[i] = data[i];
+        i++;
+    }
+    userId[i] = '\0';
+    i++;
+    offset = i;
+    while (data[i] != '\0')
+    {
+        password[i-offset] = data[i];
+        i++;
+    }
+    password[i-offset] = '\0';
+    
+    if (strcmp(userId, "admin") == 0 && strcmp(password, "admin") == 0)
+    {
+        return "Login sucess!";
+    }
+    
+    return "UserId or password incorrect!";
 
 }

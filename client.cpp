@@ -43,31 +43,82 @@ int main(int argc, char *argv[])
     }
 
     printf("Connected to server...\n");
-    while (true)
+
+    // login
+    int         countLogin = 3; // so luong cho phep nhap lai
+    const int   LENGTH_BUF = 256;
+    char        userId[LENGTH_BUF];
+    char        password[LENGTH_BUF];
+    bool        isLoginSuccess = false;
+    // user input
+    for (int i = 0; i < countLogin; ++i)
     {
-        printf("Input a message to server (@ for exit): ");
-        fgets(sentBuf, BUFFER_SIZE, stdin);
-        if (strcmp(sentBuf, "@\n") == 0)
-        {
-            strcpy(sentBuf, "@close");
-            write(connSock, sentBuf, strlen(sentBuf));
-            break;
-        }
-        sentDataLen = write(connSock, sentBuf, strlen(sentBuf)-1);
+        printf("Enter the userId: ");
+        fgets(userId, LENGTH_BUF, stdin);
+        userId[strlen(userId)-1] = '\0';
+        
+        printf("Enter the password: ");
+        fgets(password, LENGTH_BUF, stdin);
+        password[strlen(password)-1] = '\0';
+
+        // send data to server
+        strcpy(sentBuf, userId);
+        strcat(sentBuf, ",");
+        strcat(sentBuf, password);
+
+        sentDataLen = write(connSock, sentBuf, strlen(sentBuf));
         if (sentDataLen < 0)
         {
-            printf("Error when send data");
-            break;
+            printf("Error when login...");
+            close(connSock);
+            return 1;
         }
         recvDataLen = read(connSock, recvBuf, sizeof(recvBuf));
         if (recvDataLen < 0)
         {
-            printf("Error when receive data\n");
+            printf("Error when login...");
+            close(connSock);
+            return 1;
+        }
+        recvBuf[recvDataLen] = '\0';
+        printf("%s\n", recvBuf);
+        if (strcmp(recvBuf, "Login sucess!") == 0)
+        {
+            isLoginSuccess = true;
             break;
         }
-        recvBuf[recvDataLen]='\0';
-        printf("Message received from server: %s\n", recvBuf);
     }
+
+    
+    if (isLoginSuccess)
+    {
+        while (true)
+        {
+            printf("Input a message to server (@ for exit): ");
+            fgets(sentBuf, BUFFER_SIZE, stdin);
+            if (strcmp(sentBuf, "@\n") == 0)
+            {
+                strcpy(sentBuf, "@close");
+                write(connSock, sentBuf, strlen(sentBuf));
+                break;
+            }
+            sentDataLen = write(connSock, sentBuf, strlen(sentBuf)-1);
+            if (sentDataLen < 0)
+            {
+                printf("Error when send data");
+                break;
+            }
+            recvDataLen = read(connSock, recvBuf, sizeof(recvBuf));
+            if (recvDataLen < 0)
+            {
+                printf("Error when receive data\n");
+                break;
+            }
+            recvBuf[recvDataLen]='\0';
+            printf("Message received from server: %s\n", recvBuf);
+        }
+    }
+
     close(connSock);
     return 1;
 

@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
     char        userId[LENGTH_BUF];
     char        password[LENGTH_BUF];
     bool        isLoginSuccess = false;
+
     // user input
     for (int i = 0; i < countLogin; ++i)
     {
